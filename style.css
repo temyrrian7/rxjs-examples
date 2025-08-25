@@ -50,3 +50,49 @@ button {
 button:hover {
   background: #334155;
 }
+
+/* Панель опису рівнів */
+#level-desc {
+  margin: 20px auto;
+  max-width: 720px;
+  text-align: left;
+}
+
+#level-desc .desc {
+  background: #111827;
+  border: 1px solid #1f2937;
+  border-radius: 12px;
+  padding: 16px 20px;
+  margin-bottom: 16px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.25);
+  animation: fadeIn 0.4s ease;
+}
+
+#level-desc h2 {
+  margin-top: 0;
+  font-size: 18px;
+  color: #facc15; /* жовтий акцент */
+}
+
+#level-desc p {
+  margin: 6px 0 12px;
+  line-height: 1.5;
+  color: #e2e8f0;
+}
+
+#level-desc ul {
+  margin: 0;
+  padding-left: 20px;
+}
+
+#level-desc li {
+  margin: 4px 0;
+  color: #cbd5e1;
+}
+
+/* ефект плавного зʼявлення */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
