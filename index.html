@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>RxJS Demo (без сборки)</title>
+  <link rel="stylesheet" href="style.css" />
+  <!-- RxJS через CDN (UMD) -->
+  <script src="https://unpkg.com/rxjs@7/dist/bundles/rxjs.umd.min.js"></script>
+</head>
+<body>
+  <main class="container">
+    <h1>RxJS Typeahead</h1>
+
+    <label>
+      Введи текст (дебаунс 400 мс):
+      <input id="search" placeholder="попробуй печатать…" autofocus />
+    </label>
+
+    <div class="cards">
+      <div class="card">
+        <h2>Текущее значение</h2>
+        <p id="current">—</p>
+      </div>
+      <div class="card">
+        <h2>UPPERCASE (map)</h2>
+        <p id="upper">—</p>
+      </div>
+      <div class="card">
+        <h2>Символов (scan)</h2>
+        <p id="len">0</p>
+      </div>
+    </div>
+
+    <footer>
+      <button id="clear">Очистить</button>
+      <span class="hint">RxJS через <code>unpkg</code>, без сборки/Node.</span>
+    </footer>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
