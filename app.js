@@ -1,7 +1,17 @@
 const { interval, fromEvent, merge } = rxjs;
-const { map, scan, startWith, switchMap } = rxjs.operators;
+const { map } = rxjs.operators;
 
-let currentLevel = 1;
+let subscription = null; // активна підписка
+
+// 🔧 Відписка + гасимо всі світлофори
+function cleanup() {
+  if (subscription) {
+    subscription.unsubscribe();
+    subscription = null;
+  }
+  clearLights('traffic-light');
+  clearLights('cross-traffic');
+}
 
 // допоміжна функція для оновлення світлофора
 function setLight(containerId, color) {
@@ -13,13 +23,20 @@ function setLight(containerId, color) {
   }
 }
 
+// гасимо всі лампи у контейнері
+function clearLights(containerId) {
+  const lights = document.querySelectorAll(`#${containerId} .light`);
+  lights.forEach(l => l.classList.remove('active'));
+}
+
 // --- Level 1 ---
 function level1() {
+  cleanup();
   document.getElementById('pedestrian-btn').style.display = 'none';
   document.getElementById('cross-traffic').style.display = 'none';
   document.getElementById('level-title').textContent = 'Рівень 1: Простий світлофор';
 
-  interval(1000).pipe(
+  subscription = interval(1000).pipe(
     map(i => i % 3) // 0,1,2
   ).subscribe(n => {
     if (n === 0) setLight('traffic-light', 'red');
@@ -30,6 +47,7 @@ function level1() {
 
 // --- Level 2 ---
 function level2() {
+  cleanup();
   document.getElementById('pedestrian-btn').style.display = 'inline-block';
   document.getElementById('cross-traffic').style.display = 'none';
   document.getElementById('level-title').textContent = 'Рівень 2: Кнопка пішохода';
@@ -42,18 +60,19 @@ function level2() {
     map(i => i % 3 === 0 ? 'red' : i % 3 === 1 ? 'yellow' : 'green')
   );
 
-  merge(cycle$, btn$).subscribe(color => {
+  subscription = merge(cycle$, btn$).subscribe(color => {
     setLight('traffic-light', color);
   });
 }
 
 // --- Level 3 ---
 function level3() {
+  cleanup();
   document.getElementById('pedestrian-btn').style.display = 'none';
   document.getElementById('cross-traffic').style.display = 'block';
   document.getElementById('level-title').textContent = 'Рівень 3: Перехрестя';
 
-  interval(2000).pipe(
+  subscription = interval(2000).pipe(
     map(i => i % 2) // 0,1
   ).subscribe(n => {
     if (n === 0) {
