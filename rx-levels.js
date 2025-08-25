@@ -1,97 +1,115 @@
-// rx-levels.js
+// rx-levels.js (starter)
+// ❗ Використовуємо ESM-імпорти RxJS та утиліти з ui.js
 import { interval, fromEvent, merge, of, timer, concat } from "https://cdn.skypack.dev/rxjs@7";
 import { map, startWith, switchMap, tap, delay, repeat, withLatestFrom } from "https://cdn.skypack.dev/rxjs@7/operators";
 import { setLight, setSubscription, showLevel } from "./ui.js";
 
-/* -------------------- Level 1 -------------------- */
+/* ================================================================
+   🟢 Рівень 1 — «Простий світлофор»
+   Мета: зібрати нескінченний цикл станів:
+         червоний → жовтий → зелений → червоний → ...
+   Підказки:
+   - створи інтервал (наприклад, 1000 мс)
+   - мапи індекс i % 3 на колір
+   - не забувай setSubscription(sub) після subscribe(...)
+   ================================================================ */
 export function level1() {
   showLevel("Рівень 1: Простий світлофор", { pedestrian: false, crossTraffic: false });
 
-  const sub = interval(1000).pipe(
-    map(i => i % 3) // 0,1,2
-  ).subscribe(n => {
-    if (n === 0) setLight("traffic-light", "red");
-    if (n === 1) setLight("traffic-light", "yellow");
-    if (n === 2) setLight("traffic-light", "green");
-  });
+  // TODO(1): створити потік, який кожну секунду видає 0,1,2 по колу
+  // const cycle$ = ...
 
-  setSubscription(sub);
+  // TODO(2): підписатися і на основі значення встановлювати колір:
+  // 0 -> 'red', 1 -> 'yellow', 2 -> 'green'
+  // const sub = cycle$.subscribe(n => { ... });
+
+  // TODO(3): зберегти підписку через setSubscription(sub)
+  // setSubscription(sub);
+
+  // Тимчасово (видали після реалізації): засвітимо червоне як placeholder
+  setLight("traffic-light", "red");
 }
 
-/* -------------------- Level 2 -------------------- */
-/* Кнопка пішохода: при кліку тримаємо ЧЕРВОНИЙ 2000 мс, потім цикл продовжується */
+/* ================================================================
+   🟡 Рівень 2 — «Кнопка пішохода»
+   Мета: при натисканні кнопки "Пішохідний перехід" світлофор має
+         негайно стати червоним і тримати цей стан N мс (наприклад 2000),
+         після чого звичайний цикл продовжується.
+   Підказки:
+   - fromEvent(btn, 'click') дає потік кліків
+   - заведи "режим" normal/ped через switchMap + timer
+   - комбінуй режим з базовим циклом через withLatestFrom
+   ================================================================ */
 export function level2() {
   showLevel("Рівень 2: Кнопка пішохода", { pedestrian: true, crossTraffic: false });
 
   const btn = document.getElementById("pedestrian-btn");
 
-  // Базовий цикл
-  const cycle$ = interval(1000).pipe(
-    map(i => i % 3 === 0 ? "red" : i % 3 === 1 ? "yellow" : "green"),
-    startWith("red")
-  );
+  // TODO(1): базовий цикл кольорів з інтервалом (як у рівні 1), можна startWith('red')
+  // const cycle$ = ...
 
-  // Режим: normal | ped (клік => 2 секунди ped, потім normal)
-  const mode$ = fromEvent(btn, "click").pipe(
-    switchMap(() =>
-      concat(
-        of("ped"),                // негайно увійшли у режим пішохода
-        timer(2000).pipe(map(() => "normal")) // через 2с повернулись у normal
-      )
-    ),
-    startWith("normal")
-  );
+  // TODO(2): потік режимів:
+  // - при кліку: негайно 'ped', потім через 2000 мс назад у 'normal'
+  // const mode$ = fromEvent(btn, 'click').pipe(
+  //   switchMap(() => concat(of('ped'), timer(2000).pipe(map(()=>'normal')))),
+  //   startWith('normal')
+  // );
 
-  // Малюємо за тіком циклу, але якщо mode === 'ped' — примусово ЧЕРВОНИЙ
-  const sub = cycle$.pipe(
-    withLatestFrom(mode$),
-    map(([color, mode]) => (mode === "ped" ? "red" : color))
-  ).subscribe(color => setLight("traffic-light", color));
+  // TODO(3): комбінувати cycle$ з mode$ так, щоб при mode==='ped' завжди малювався 'red'
+  // const sub = cycle$.pipe(
+  //   withLatestFrom(mode$),
+  //   map(([color, mode]) => mode === 'ped' ? 'red' : color)
+  // ).subscribe(color => setLight('traffic-light', color));
 
-  setSubscription(sub);
+  // TODO(4): зберегти підписку
+  // setSubscription(sub);
+
+  // Placeholder, щоб було видно кнопку (видали після реалізації)
+  setLight("traffic-light", "yellow");
 }
 
-/* -------------------- Level 3 -------------------- */
-/* Два світлофори з міжфазними паузами:
-   A: зелений → жовтий → all-red → B: зелений → жовтий → all-red → (повтор)
-*/
+/* ================================================================
+   🔴 Рівень 3 — «Перехрестя»
+   Мета: синхронізувати два світлофори:
+         A: зелений → жовтий → all-red → B: зелений → жовтий → all-red → (повтор)
+         жодного разу не допускаючи двох зелених одночасно.
+   Підказки:
+   - можна зробити ланцюжок фаз через concat(of(...).pipe(tap(...), delay(...)), ...).repeat()
+   - або зробити невеликий state machine через scan
+   - між напрямками обов'язково коротка фаза "all-red"
+   ================================================================ */
 export function level3() {
   showLevel("Рівень 3: Перехрестя", { pedestrian: false, crossTraffic: true });
 
-  // Тривалості (мс) – можна підкрутити
-  const G = 4000;   // green
-  const Y = 1200;   // yellow
-  const Rg = 400;   // all-red (між напрямками)
+  // Рекомендовані тривалості (можеш змінювати)
+  const G = 4000; // green ms
+  const Y = 1200; // yellow ms
+  const Rg = 400; // all-red ms
 
-  // Допоміжні функції для відмалювання фаз
-  const A_GREEN = () => { setLight("traffic-light", "green"); setLight("cross-traffic", "red");   assertNoConflict(); };
-  const A_YELLW = () => { setLight("traffic-light", "yellow"); setLight("cross-traffic", "red");  assertNoConflict(); };
-  const ALL_RED = () => { setLight("traffic-light", "red"); setLight("cross-traffic", "red");     assertNoConflict(); };
-  const B_GREEN = () => { setLight("traffic-light", "red"); setLight("cross-traffic", "green");   assertNoConflict(); };
-  const B_YELLW = () => { setLight("traffic-light", "red"); setLight("cross-traffic", "yellow");  assertNoConflict(); };
+  // TODO(1): опиши фази як послідовність, у кожній фазі через tap(...) малюй потрібні кольори:
+  // - A green: A=green, B=red
+  // - A yellow: A=yellow, B=red
+  // - all-red: A=red, B=red
+  // - B green: A=red, B=green
+  // - B yellow: A=red, B=yellow
+  //
+  // Після tap(...) додай delay(тривалість фази), щоб потримати стан.
+  // З'єднай фази через concat(...).pipe(repeat())
+  //
+  // const sequence$ = concat(
+  //   of('A_G').pipe(tap(()=>{ ... }), delay(G)),
+  //   of('A_Y').pipe(tap(()=>{ ... }), delay(Y)),
+  //   of('AR').pipe(tap(()=>{ ... }), delay(Rg)),
+  //   of('B_G').pipe(tap(()=>{ ... }), delay(G)),
+  //   of('B_Y').pipe(tap(()=>{ ... }), delay(Y)),
+  //   of('AR').pipe(tap(()=>{ ... }), delay(Rg))
+  // ).pipe(repeat());
 
-  // Ланцюжок фаз, що повторюється нескінченно.
-  // Використовуємо tap() щоб малювати одразу при вході у фазу,
-  // а delay() — щоб потримати фазу потрібний час, перш ніж перейти далі.
-  const sequence$ = concat(
-    of("A_G").pipe( tap(A_GREEN), delay(G) ),
-    of("A_Y").pipe( tap(A_YELLW), delay(Y) ),
-    of("AR").pipe( tap(ALL_RED),  delay(Rg) ),
-    of("B_G").pipe( tap(B_GREEN), delay(G) ),
-    of("B_Y").pipe( tap(B_YELLW), delay(Y) ),
-    of("AR").pipe( tap(ALL_RED),  delay(Rg) )
-  ).pipe(repeat());
+  // TODO(2): підписка на sequence$ (значення не використовуємо, усе робимо в tap)
+  // const sub = sequence$.subscribe();
+  // setSubscription(sub);
 
-  const sub = sequence$.subscribe(); // значення не використовуємо, усе в tap()
-
-  setSubscription(sub);
-}
-
-/* --------- утиліта для виявлення конфлікту (два зелених) --------- */
-function assertNoConflict() {
-  const aGreen = document.querySelector('#traffic-light .green')?.classList.contains('active');
-  const bGreen = document.querySelector('#cross-traffic .green')?.classList.contains('active');
-  if (aGreen && bGreen) {
-    console.error("❌ Конфлікт: два зелених одночасно!");
-  }
+  // Placeholder, щоб щось було видно (видали після реалізації)
+  setLight("traffic-light", "green");
+  setLight("cross-traffic", "red");
 }
