@@ -1,45 +1,75 @@
-// Достаём RxJS из глобального rxjs (UMD)
-const { fromEvent, merge } = rxjs;
-const { debounceTime, map, filter, scan, startWith, tap } = rxjs.operators;
+const { interval, fromEvent, merge } = rxjs;
+const { map, scan, startWith, switchMap } = rxjs.operators;
 
-const input = document.getElementById('search');
-const currentEl = document.getElementById('current');
-const upperEl = document.getElementById('upper');
-const lenEl = document.getElementById('len');
-const clearBtn = document.getElementById('clear');
+let currentLevel = 1;
 
-// Поток ввода
-const input$ = fromEvent(input, 'input').pipe(
-  map(e => e.target.value)
-);
+// допоміжна функція для оновлення світлофора
+function setLight(containerId, color) {
+  const lights = document.querySelectorAll(`#${containerId} .light`);
+  lights.forEach(l => l.classList.remove('active'));
+  if (color) {
+    const el = document.querySelector(`#${containerId} .${color}`);
+    if (el) el.classList.add('active');
+  }
+}
 
-// Дебаунс, игнор пустого
-const debounced$ = input$.pipe(
-  debounceTime(400),
-  filter(v => v.trim().length > 0)
-);
+// --- Level 1 ---
+function level1() {
+  document.getElementById('pedestrian-btn').style.display = 'none';
+  document.getElementById('cross-traffic').style.display = 'none';
+  document.getElementById('level-title').textContent = 'Рівень 1: Простий світлофор';
 
-// Отображаем текущее значение «как есть»
-input$.subscribe(v => { currentEl.textContent = v || '—'; });
+  interval(1000).pipe(
+    map(i => i % 3) // 0,1,2
+  ).subscribe(n => {
+    if (n === 0) setLight('traffic-light', 'red');
+    if (n === 1) setLight('traffic-light', 'yellow');
+    if (n === 2) setLight('traffic-light', 'green');
+  });
+}
 
-// В верхний регистр (map)
-debounced$
-  .pipe(map(v => v.toUpperCase()))
-  .subscribe(v => { upperEl.textContent = v; });
+// --- Level 2 ---
+function level2() {
+  document.getElementById('pedestrian-btn').style.display = 'inline-block';
+  document.getElementById('cross-traffic').style.display = 'none';
+  document.getElementById('level-title').textContent = 'Рівень 2: Кнопка пішохода';
 
-// Считаем длину (scan на последнем значении)
-merge(input$, debounced$)
-  .pipe(
-    map(v => v.length),
-    startWith(0)
-  )
-  .subscribe(n => { lenEl.textContent = String(n); });
+  const btn$ = fromEvent(document.getElementById('pedestrian-btn'), 'click').pipe(
+    map(() => 'red')
+  );
 
-// Кнопка очистки
-fromEvent(clearBtn, 'click').subscribe(() => {
-  input.value = '';
-  currentEl.textContent = '—';
-  upperEl.textContent = '—';
-  lenEl.textContent = '0';
-  input.focus();
-});
+  const cycle$ = interval(1000).pipe(
+    map(i => i % 3 === 0 ? 'red' : i % 3 === 1 ? 'yellow' : 'green')
+  );
+
+  merge(cycle$, btn$).subscribe(color => {
+    setLight('traffic-light', color);
+  });
+}
+
+// --- Level 3 ---
+function level3() {
+  document.getElementById('pedestrian-btn').style.display = 'none';
+  document.getElementById('cross-traffic').style.display = 'block';
+  document.getElementById('level-title').textContent = 'Рівень 3: Перехрестя';
+
+  interval(2000).pipe(
+    map(i => i % 2) // 0,1
+  ).subscribe(n => {
+    if (n === 0) {
+      setLight('traffic-light', 'green');
+      setLight('cross-traffic', 'red');
+    } else {
+      setLight('traffic-light', 'red');
+      setLight('cross-traffic', 'green');
+    }
+  });
+}
+
+// --- Перемикач рівнів ---
+document.getElementById('level1').addEventListener('click', () => { level1(); });
+document.getElementById('level2').addEventListener('click', () => { level2(); });
+document.getElementById('level3').addEventListener('click', () => { level3(); });
+
+// старт з першого рівня
+level1();
